@@ -56,3 +56,16 @@ function getFlashMessage(): ?array
     }
     return null;
 }
+
+/**
+ * Generate a random output table name (10 alpha characters)
+ */
+function generateOutputTableName(): string
+{
+    $chars = 'abcdefghijklmnopqrstuvwxyz';
+    $name = '';
+    for ($i = 0; $i < 10; $i++) {
+        $name .= $chars[random_int(0, 25)];
+    }
+    return $name;
+}

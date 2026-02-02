@@ -58,10 +58,12 @@ function handleFormSubmission(PDO $pdo): void
  */
 function createOrder(PDO $pdo): void
 {
+    $outputTable = generateOutputTableName();
+
     $stmt = $pdo->prepare('
         INSERT INTO public.orders
-        (customer_id, database_id, external_ref, list_description, desired_quantity, status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (customer_id, database_id, external_ref, list_description, desired_quantity, output_table, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ');
 
     $stmt->execute([
@@ -70,10 +72,11 @@ function createOrder(PDO $pdo): void
         $_POST['external_ref'] ?: null,
         $_POST['list_description'],
         $_POST['desired_quantity'],
+        $outputTable,
         'open'
     ]);
 
-    setFlashMessage('success', 'Work order created successfully.');
+    setFlashMessage('success', 'Work order created successfully. Output table: ' . $outputTable);
     header('Location: index.php');
     exit;
 }
@@ -227,6 +230,7 @@ function showOrderList(PDO $pdo): void
             <thead>
                 <tr>
                     <th>WO#</th>
+                    <th>Output Table</th>
                     <th>Customer</th>
                     <th>List Provider</th>
                     <th>External Ref</th>
@@ -241,6 +245,7 @@ function showOrderList(PDO $pdo): void
                 <?php foreach ($orders as $order): ?>
                     <tr>
                         <td><strong><?= $order['id'] ?></strong></td>
+                        <td><code><?= htmlspecialchars($order['output_table'] ?? '-') ?></code></td>
                         <td><?= htmlspecialchars($order['customer_name']) ?></td>
                         <td><?= htmlspecialchars($order['list_code']) ?> - <?= htmlspecialchars($order['database_name']) ?></td>
                         <td><?= htmlspecialchars($order['external_ref'] ?? '-') ?></td>
@@ -302,6 +307,10 @@ function showOrder(PDO $pdo, ?int $id): void
             <div class="detail-item">
                 <label>Status</label>
                 <span class="status status-<?= $order['status'] ?>"><?= formatStatus($order['status']) ?></span>
+            </div>
+            <div class="detail-item">
+                <label>Output Table</label>
+                <span><code class="output-table"><?= htmlspecialchars($order['output_table'] ?? 'N/A') ?></code></span>
             </div>
             <div class="detail-item">
                 <label>Customer</label>
@@ -408,6 +417,11 @@ function showForm(PDO $pdo, ?int $id = null): void
         <input type="hidden" name="form_action" value="<?= $isEdit ? 'update' : 'create' ?>">
         <?php if ($isEdit): ?>
             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+
+            <div class="form-group">
+                <label>Output Table (auto-generated)</label>
+                <input type="text" value="<?= htmlspecialchars($order['output_table'] ?? '') ?>" disabled class="disabled-input">
+            </div>
         <?php endif; ?>
 
         <div class="form-group">
@@ -531,6 +545,9 @@ function renderHeader(string $title): void
             tr:hover { background: #f8f9fa; }
             .number { text-align: right; font-variant-numeric: tabular-nums; }
 
+            code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+            .output-table { background: #e8f4f8; color: #0066cc; font-size: 14px; padding: 4px 8px; }
+
             .status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
             .status-open { background: #e3f2fd; color: #1565c0; }
             .status-in_progress { background: #fff3e0; color: #e65100; }
@@ -555,6 +572,7 @@ function renderHeader(string $title): void
             .form-group label { display: block; font-weight: 500; margin-bottom: 6px; }
             .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
             .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #3498db; }
+            .form-group .disabled-input { background: #f5f5f5; color: #666; cursor: not-allowed; font-family: 'SF Mono', Monaco, monospace; }
             .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
             .form-actions { margin-top: 24px; display: flex; gap: 10px; }
         </style>
